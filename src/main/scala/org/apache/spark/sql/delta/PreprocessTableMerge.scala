@@ -41,7 +41,8 @@ case class PreprocessTableMerge(override val conf: SQLConf)
   }
 
   def apply(mergeInto: DeltaMergeInto): MergeIntoCommand = {
-    val DeltaMergeInto(target, source, condition, matched, notMatched, migrateSchema) = mergeInto
+    val DeltaMergeInto(target, source, condition, matched, notMatched, migrateSchema,
+      mergeOptions) = mergeInto
     def checkCondition(cond: Expression, conditionName: String): Unit = {
       if (!cond.deterministic) {
         throw DeltaErrors.nonDeterministicNotSupportedException(
@@ -200,6 +201,6 @@ case class PreprocessTableMerge(override val conf: SQLConf)
 
     MergeIntoCommand(
       source, target, tahoeFileIndex, condition,
-      processedMatched, processedNotMatched, Some(finalSchema))
+      processedMatched, processedNotMatched, Some(finalSchema), mergeOptions)
   }
 }

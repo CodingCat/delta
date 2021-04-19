@@ -141,7 +141,8 @@ object DeltaOperations {
       deletePredicate: Option[String],
       insertPredicate: Option[String],
       matchedPredicates: Seq[MergePredicate],
-      notMatchedPredicates: Seq[MergePredicate]) extends Operation("MERGE") {
+      notMatchedPredicates: Seq[MergePredicate],
+      override val userMetadata: Option[String]) extends Operation("MERGE") {
 
     override val parameters: Map[String, Any] = {
       predicate.map("predicate" -> _).toMap ++
@@ -159,13 +160,15 @@ object DeltaOperations {
     def apply(
         predicate: Option[String],
         matchedPredicates: Seq[MergePredicate],
-        notMatchedPredicates: Seq[MergePredicate]): Merge = Merge(
+        notMatchedPredicates: Seq[MergePredicate],
+        mergeOptions: Map[String, String]): Merge = Merge(
           predicate,
           updatePredicate = None,
           deletePredicate = None,
           insertPredicate = None,
           matchedPredicates,
-          notMatchedPredicates)
+          notMatchedPredicates,
+          mergeOptions.get("userMetadata"))
   }
 
   /** Recorded when an update operation is committed to the table. */

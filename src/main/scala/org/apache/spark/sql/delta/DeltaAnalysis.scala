@@ -16,6 +16,8 @@
 
 package org.apache.spark.sql.delta
 
+import org.apache.spark.sql.delta.sources.DeltaSQLConf
+
 import scala.collection.JavaConverters._
 
 
@@ -159,7 +161,9 @@ class DeltaAnalysis(session: SparkSession, conf: SQLConf)
       // Even if we're merging into a non-Delta target, we will catch it later and throw an
       // exception.
       val deltaMerge =
-        DeltaMergeInto(newTarget, source, condition, matchedActions ++ notMatchedActions)
+        DeltaMergeInto(newTarget, source, condition, matchedActions ++ notMatchedActions,
+          Map("userMetadata" ->
+            session.sessionState.conf.getConf(DeltaSQLConf.DELTA_USER_METADATA).getOrElse("")))
 
       val deltaMergeResolved =
         DeltaMergeInto.resolveReferences(deltaMerge, conf)(tryResolveReferences(session) _)

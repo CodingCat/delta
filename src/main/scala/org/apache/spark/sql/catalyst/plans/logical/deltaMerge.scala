@@ -18,6 +18,8 @@ package org.apache.spark.sql.catalyst.plans.logical
 
 import java.util.Locale
 
+import scala.collection.Map
+
 import org.apache.spark.sql.delta.sources.DeltaSQLConf
 
 import org.apache.spark.sql.AnalysisException
@@ -210,7 +212,8 @@ case class DeltaMergeInto(
     condition: Expression,
     matchedClauses: Seq[DeltaMergeIntoMatchedClause],
     notMatchedClauses: Seq[DeltaMergeIntoInsertClause],
-    migrateSchema: Boolean) extends Command {
+    migrateSchema: Boolean,
+    mergeOptions: Map[String, String]) extends Command {
 
   (matchedClauses ++ notMatchedClauses).foreach(_.verifyActions())
 
@@ -223,7 +226,8 @@ object DeltaMergeInto {
       target: LogicalPlan,
       source: LogicalPlan,
       condition: Expression,
-      whenClauses: Seq[DeltaMergeIntoClause]): DeltaMergeInto = {
+      whenClauses: Seq[DeltaMergeIntoClause],
+      mergeOptions: Map[String, String]): DeltaMergeInto = {
     val deleteClauses = whenClauses.collect { case x: DeltaMergeIntoDeleteClause => x }
     val updateClauses = whenClauses.collect { case x: DeltaMergeIntoUpdateClause => x }
     val insertClauses = whenClauses.collect { case x: DeltaMergeIntoInsertClause => x }
@@ -252,13 +256,15 @@ object DeltaMergeInto {
       condition,
       whenClauses.collect { case x: DeltaMergeIntoMatchedClause => x },
       whenClauses.collect { case x: DeltaMergeIntoInsertClause => x },
-      migrateSchema = false)
+      migrateSchema = false,
+      mergeOptions = mergeOptions)
   }
 
   def resolveReferences(merge: DeltaMergeInto, conf: SQLConf)(
       resolveExpr: (Expression, LogicalPlan) => Expression): DeltaMergeInto = {
 
-    val DeltaMergeInto(target, source, condition, matchedClauses, notMatchedClause, _) = merge
+    val DeltaMergeInto(target, source, condition, matchedClauses, notMatchedClause,
+      _, mergeOptions) = merge
 
     // We must do manual resolution as the expressions in different clauses of the MERGE have
     // visibility of the source, the target or both. Additionally, the resolution logic operates
@@ -385,7 +391,8 @@ object DeltaMergeInto {
     val resolvedMerge = DeltaMergeInto(
       target, source, resolvedCond,
       resolvedMatchedClauses, resolvedNotMatchedClause,
-      migrateSchema = canAutoMigrate && containsStarAction)
+      migrateSchema = canAutoMigrate && containsStarAction,
+      mergeOptions = mergeOptions)
 
     // Its possible that pre-resolved expressions (e.g. `sourceDF("key") = targetDF("key")`) have
     // attribute references that are not present in the output attributes of the children (i.e.,

@@ -205,7 +205,8 @@ case class MergeIntoCommand(
     condition: Expression,
     matchedClauses: Seq[DeltaMergeIntoMatchedClause],
     notMatchedClauses: Seq[DeltaMergeIntoInsertClause],
-    migratedSchema: Option[StructType]) extends RunnableCommand
+    migratedSchema: Option[StructType],
+    mergeOptions: Map[String, String]) extends RunnableCommand
   with DeltaCommand with PredicateHelper with AnalysisHelper with ImplicitMetadataOperation {
 
   import SQLMetrics._
@@ -284,7 +285,8 @@ case class MergeIntoCommand(
           DeltaOperations.Merge(
             Option(condition.sql),
             matchedClauses.map(DeltaOperations.MergePredicate(_)),
-            notMatchedClauses.map(DeltaOperations.MergePredicate(_))))
+            notMatchedClauses.map(DeltaOperations.MergePredicate(_)),
+            mergeOptions))
 
         // Record metrics
         val stats = MergeStats.fromMergeSQLMetrics(

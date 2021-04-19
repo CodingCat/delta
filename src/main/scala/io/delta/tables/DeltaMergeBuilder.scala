@@ -124,7 +124,8 @@ class DeltaMergeBuilder private(
     private val targetTable: DeltaTable,
     private val source: DataFrame,
     private val onCondition: Column,
-    private val whenClauses: Seq[DeltaMergeIntoClause])
+    private val whenClauses: Seq[DeltaMergeIntoClause],
+    private val mergeOptions: Map[String, String])
   extends AnalysisHelper
   with Logging
   {
@@ -247,7 +248,7 @@ class DeltaMergeBuilder private(
   @Unstable
   private[delta] def withClause(clause: DeltaMergeIntoClause): DeltaMergeBuilder = {
     new DeltaMergeBuilder(
-      this.targetTable, this.source, this.onCondition, this.whenClauses :+ clause)
+      this.targetTable, this.source, this.onCondition, this.whenClauses :+ clause, mergeOptions)
   }
 
   private def mergePlan: DeltaMergeInto = {
@@ -274,7 +275,7 @@ class DeltaMergeBuilder private(
         + refReplacementMap.toSeq.mkString(", "))
     }
 
-    val merge = DeltaMergeInto(targetPlan, sourcePlan, onCondition.expr, whenClauses)
+    val merge = DeltaMergeInto(targetPlan, sourcePlan, onCondition.expr, whenClauses, mergeOptions)
     val finalMerge = if (duplicateResolvedRefs.nonEmpty) {
       // If any expression contain duplicate, pre-resolved references, we can't simply
       // replace the references in the same way as the target because we don't know
@@ -301,8 +302,9 @@ object DeltaMergeBuilder {
   private[delta] def apply(
       targetTable: DeltaTable,
       source: DataFrame,
-      onCondition: Column): DeltaMergeBuilder = {
-    new DeltaMergeBuilder(targetTable, source, onCondition, Nil)
+      onCondition: Column,
+      mergeOptions: Map[String, String] = Map()): DeltaMergeBuilder = {
+    new DeltaMergeBuilder(targetTable, source, onCondition, Nil, mergeOptions)
   }
 }
 
